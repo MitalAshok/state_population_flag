@@ -10,8 +10,10 @@ OUTPUT_BY_POPULATION = os.path.join(OUTPUT_PATH, 'us_flag_stars_and_stripes_scal
 OUTPUT_BY_AREA = os.path.join(OUTPUT_PATH, 'us_flag_stars_and_stripes_scaled_by_area.svg')
 OUTPUT_BY_POPULATION_ANIMATED = os.path.join(OUTPUT_PATH, 'us_flag_stars_and_stripes_scaled_by_population_animated.svg')
 OUTPUT_BY_AREA_ANIMATED = os.path.join(OUTPUT_PATH, 'us_flag_stars_and_stripes_scaled_by_area_animated.svg')
+OUTPUT_BY_POPULATION_ANIMATED_TO_ELECTORAL_VOTES = os.path.join(OUTPUT_PATH, 'us_flag_stars_and_stripes_scaled_by_population_and_electoral_votes_animated.svg')
 
 ANIMATION_TIMINGS = (10, 2, 5)  # 10 seconds showing proportional flag, 2 seconds transitioning, 5 seconds default flag, 2 seconds transitioning back
+ANIMATED_ELECTORAL_VOTES = (3, 0.5, 3)
 
 # Original flag is specified by Title 4 of the United States Code
 # https://uscode.house.gov/view.xhtml?req=granuleid%3AUSC-prelim-title4&saved=%7CZ3JhbnVsZWlkOlVTQy1wcmVsaW0tdGl0bGU0LWZyb250%7C%7C%7C0%7Cfalse%7Cprelim&edition=prelim
@@ -73,7 +75,7 @@ def polar_to_cartesian(r, theta):
     return r * math.cos(theta), r * math.sin(theta)
 
 
-def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0.4):
+def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0.4, alt_default=None):
     """
     red_strip_defs is a list of 7 pairs (top_y, height) where the 7 red stripes are each starting at top_y and ending at top_y+height
     (In relative units where the height of the flag is 1)
@@ -82,9 +84,24 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
 
     If animate_duration is not None, will animate so that the flag will cycle between the default US flag and the scaled version in that duration
 
-    canton_width is the proportion of the flag the canton takes up (40% on a standard US flag)
+    If alt_default is not None, it should be a tuple (red_stripe_defs, star_scales, canton_width), (red_stripe_defs, star_scales) or (star_scales,)
+    as above which will be used as the default flag instead (red_stripe_defs will default to 1/13th width, canton_width will default to the canton_width of the other flag)
+
+    canton_width is the proportion of the flag the canton takes up (40% on a standard US flag). Set to -n to be scaled to n red/white stripes tall
     """
     do_animate = animate_duration is not None
+    has_alt_default = alt_default is not None
+    if has_alt_default:
+        if len(alt_default) == 3:
+            alt_red_stripe_defs, alt_star_scales, alt_canton_width = alt_default
+        elif len(alt_default) == 2:
+            alt_red_stripe_defs, alt_star_scales = alt_default
+            alt_canton_width = None
+        else:
+            alt_star_scales, = alt_default
+            alt_red_stripe_defs = None
+            alt_canton_width = None
+
     if do_animate:
         proportional_time, transition_time, default_time = animate_duration
         duration = proportional_time + 2*transition_time + default_time
@@ -97,21 +114,57 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
                 '<animate attributeName="', name, '" values="', value, ';', value, ';', default_value, ';', default_value, ';', value, '" ',
                 timing, '/>'
             ))
-    
-    if canton_width == 0.4:
+    elif alt_default is not None:
+        raise TypeError('animate_duration not set but alt_default is set. No animation would actually occur and alt_default would be unused')
+
+    if canton_width < 0:
+        n = -canton_width
+        if n % 2 == 0:
+            # Top of a red stripe
+            canton_height, _ = red_stripe_defs[n // 2]
+        else:
+            # Bottom of a red stripe
+            canton_height, height = red_stripe_defs[n // 2]
+            canton_height += height
+        canton_width = canton_height * 175 / 247
+        canton_height_pct = str(canton_height * 100)
+        canton_width_pct = str(canton_height * 17500 / 247)
+    elif canton_width == 0.4:
         canton_height = 7/13
         canton_width_pct = '40'
         canton_height_pct = str(700/13)
     else:
         canton_height = canton_width * 247 / 175
-        canton_height_pct = str(canton_width * 988 / 7)
         canton_width_pct = str(canton_width * 100)
+        canton_height_pct = str(canton_width * 988 / 7)
 
     if do_animate:
-        default_canton_width = 0.4
-        default_canton_height = 7/13
-        default_canton_width_pct = '40'
-        default_canton_height_pct = str(700/13)
+        if has_alt_default and alt_canton_width is None:
+            default_canton_width = canton_width
+            default_canton_height = canton_height
+            default_canton_height_pct = canton_height_pct
+            default_canton_width_pct = canton_width_pct
+        elif has_alt_default and alt_canton_width != 0.4:
+            if alt_canton_width < 0:
+                n = -alt_canton_width
+                if n % 2 == 0:
+                    default_canton_height, _ = alt_red_stripe_defs[n // 2]
+                else:
+                    default_canton_height, height = alt_red_stripe_defs[n // 2]
+                    default_canton_height += height
+                default_canton_width = default_canton_height * 175 / 247
+                default_canton_height_pct = str(default_canton_height * 100)
+                default_canton_width_pct = str(default_canton_height * 17500 / 247)
+            else:
+                default_canton_width = alt_canton_width
+                default_canton_height = default_canton_width * 247 / 175
+                default_canton_width_pct = str(default_canton_width * 100)
+                default_canton_height_pct = str(default_canton_width * 988 / 7)
+        else:
+            default_canton_width = 0.4
+            default_canton_height = 7/13
+            default_canton_width_pct = '40'
+            default_canton_height_pct = str(700/13)
 
 
     svg = [
@@ -139,8 +192,13 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
         top_y = str(top_y)
         height = str(height)
         if do_animate:
-            default_top_y = str(i * 2/13)
-            default_height = str(1/13)
+            if has_alt_default and alt_red_stripe_defs is not None:
+                default_top_y, default_height = alt_red_stripe_defs[i]
+                default_top_y = str(default_top_y)
+                default_height = str(default_height)
+            else:
+                default_top_y = str(i * 2/13)
+                default_height = str(1/13)
             svg.extend((
                 '<rect width="100%" y="', top_y, '" height="', height, '" fill="', RED, '">',
                     make_animate('y', top_y, default_top_y),
@@ -156,8 +214,8 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
     else:
         svg.extend((
             '<rect width="', canton_width_pct, '%" height="', canton_height_pct, '%" fill="', BLUE ,'">',
-                make_animate('width', canton_width_pct, default_canton_width_pct),
-                make_animate('height', canton_height_pct, default_canton_height_pct),
+                make_animate('width', canton_width_pct + '%', default_canton_width_pct + '%'),
+                make_animate('height', canton_height_pct + '%', default_canton_height_pct + '%'),
             '</rect>'
         ))
 
@@ -176,6 +234,8 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
 
         if do_animate:
             default_radius = default_star_radius
+            if has_alt_default:
+                default_radius *= math.sqrt(alt_star_scales[state])
             default_cx = default_column_width + default_column_width * cx
             default_cy = default_row_height + default_row_height * cy
             default_x = str(default_cx - default_radius)
@@ -225,7 +285,8 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
 
     return ''.join(svg)
 
-def proportional_flag(proportions, animate_duration=None):
+
+def get_red_stripe_defs(proportions):
     red_stripe_defs = []
     thirteen_colonies_total = sum(proportions[state] for state in thirteen_colonies_order_of_founding)
     is_red = True
@@ -239,8 +300,16 @@ def proportional_flag(proportions, animate_duration=None):
             red_stripe_defs.append((top_y, height))
         is_red = not is_red
 
+    return red_stripe_defs
+
+
+def get_star_scales(proportions):
     total = sum(proportions.values())
-    return make_svg(red_stripe_defs, {state: 50*state_value / total for state, state_value in proportions.items()}, animate_duration)
+    return {state: 50*state_value / total for state, state_value in proportions.items()}
+
+
+def proportional_flag(proportions, animate_duration=None):
+    return make_svg(get_red_stripe_defs(proportions), get_star_scales(proportions), animate_duration)
 
 
 def main():
@@ -256,6 +325,8 @@ def main():
         f.write(proportional_flag(state_populations, ANIMATION_TIMINGS))
     with open(OUTPUT_BY_AREA_ANIMATED, 'w') as f:
         f.write(proportional_flag(state_areas, ANIMATION_TIMINGS))
+    with open(OUTPUT_BY_POPULATION_ANIMATED_TO_ELECTORAL_VOTES, 'w') as f:
+        f.write(make_svg(get_red_stripe_defs(state_populations), get_star_scales(state_populations), ANIMATED_ELECTORAL_VOTES, -8, (get_red_stripe_defs(state_electoral_votes), get_star_scales(state_electoral_votes))))
 
 
 # Data section
@@ -452,6 +523,62 @@ state_areas = {
     'WY': 253_335,
 }
 
+# Based on 2010 census. Electoral votes per state in the 2012, 2016 and 2020 presidential elections.
+# https://www.archives.gov/electoral-college/allocation
+# DC is removed
+
+state_electoral_votes = {
+    'AL': 9,
+    'AK': 3,
+    'AZ': 11,
+    'AR': 6,
+    'CA': 55,
+    'CO': 9,
+    'CT': 7,
+    'DE': 3,
+    'FL': 29,
+    'GA': 16,
+    'HI': 4,
+    'ID': 4,
+    'IL': 20,
+    'IN': 11,
+    'IA': 6,
+    'KS': 6,
+    'KY': 8,
+    'LA': 8,
+    'ME': 4,
+    'MD': 10,
+    'MA': 11,
+    'MI': 16,
+    'MN': 10,
+    'MS': 6,
+    'MO': 10,
+    'MT': 3,
+    'NE': 5,
+    'NV': 6,
+    'NH': 4,
+    'NJ': 14,
+    'NM': 5,
+    'NY': 29,
+    'NC': 15,
+    'ND': 3,
+    'OH': 18,
+    'OK': 7,
+    'OR': 7,
+    'PA': 20,
+    'RI': 4,
+    'SC': 9,
+    'SD': 3,
+    'TN': 11,
+    'TX': 38,
+    'UT': 6,
+    'VT': 3,
+    'VA': 13,
+    'WA': 12,
+    'WV': 5,
+    'WI': 10,
+    'WY': 3,
+}
 
 if __name__ == '__main__':
     main()
