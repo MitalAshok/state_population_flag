@@ -171,8 +171,7 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1235" height="650" viewBox="0 0 1.9 1">'
             '<defs>'
-                '<svg id="s" viewBox="-1 -1 2 2">'
-                    '<path fill="', WHITE, '" d="M'
+                '<path id="s" fill="', WHITE, '" d="M'
     ]
 
     # #s is a white star radius 1 centred at (0, 0), with a point at (0, 1) (so it faces upwards)
@@ -181,8 +180,7 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
         svg.extend((str(x), ',', str(y)))
 
     svg.extend((
-                        'Z"/>'
-                '</svg>'
+                  'Z"/>'
             '</defs>'
             '<rect width="100%" height="100%" fill="', WHITE, '"/>'  # White rectangle for 6 of the 13 stripes
     ))
@@ -238,48 +236,33 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
                 default_radius *= math.sqrt(alt_star_scales[state])
             default_cx = default_column_width + default_column_width * cx
             default_cy = default_row_height + default_row_height * cy
-            default_x = str(default_cx - default_radius)
-            default_y = str(default_cy - default_radius)
-            default_width = str(2 * default_radius)
 
             radius = star_radius * math.sqrt(star_scales[state])
             cx = star_column_width + star_column_width * cx
             cy = star_row_height + star_row_height * cy
 
-            dr = radius / default_radius
-
             # Transformation:
-            # Translate by (-default_cx, -default_cx) so that star is centred at (0, 0)
-            # Scale by multiplying (x, y) by dr
-            # Translate to new centre (cx, cx)
+            # Scale by multiplying (x, y) by current radius
+            # Translate to new centre
 
-            # ( (1 0 cx) (0 1 cy) (0 0 1) ) ( (dr 0 0) (0 dr 0) (0 0 1) ) ( (1 0 -default_cx) (0 1 -default_cy) (0 0 1) )
-            # == ( (dr 0 cx-dr*default_cx), (0 dr cy-dr*default_cy) (0 0 1) )
-            # == ( (1 0 cx-dr*default_cx) (0 1 cy-dr*default_cy) (0 0 1) ) ( (dr 0 0) (0 dr 0) (0 0 1) )
-            # == ( (dr 0 0) (0 dr 0) (0 0 1) ) ( (1 0 cx/dr-default_cx) (0 1 cy/dr-default_cy) (0 0 1) )
-
-            translate_to_origin = str(-default_cx) + ' ' + str(-default_cy)
-            scale = str(dr) + ' ' + str(dr)
-            translate_to_position = str(cx) + ' ' + str(cy)
-            translate_to_default = str(default_cx) + ' ' + str(default_cy)
+            scale = str(radius) + ' ' + str(radius)
+            default_scale = str(default_radius) + ' ' + str(default_radius)
+            translate = str(cx) + ' ' + str(cy)
+            default_translate = str(default_cx) + ' ' + str(default_cy)
 
             svg.extend((
-                '<use xlink:href="#s" x="', default_x, '" y="', default_y, '" width="', default_width, '" height="', default_width,
-                  '" transform="translate(', translate_to_origin, ') scale(', scale, ') translate(', translate_to_position, ')">'
+                '<use xlink:href="#s" transform="translate(', translate, ') scale(', scale, ')">'
                     '<animateTransform attributeName="transform" attributeType="XML" type="translate" values="',
-                        translate_to_position, ';', translate_to_position, ';', translate_to_default, ';', translate_to_default, ';', translate_to_position, '" ', timing, '/>'
+                        translate, ';', translate, ';', default_translate, ';', default_translate, ';', translate, '" ', timing, '/>'
                     '<animateTransform attributeName="transform" attributeType="XML" type="scale" values="',
-                        scale, ';', scale, ';1 1;1 1;', scale, '" ', timing, ' additive="sum"/>'
-                    '<animateTransform attributeName="transform" attributeType="XML" type="translate" values="',
-                        translate_to_origin, ';', translate_to_origin, ';', translate_to_origin, ';', translate_to_origin, ';', translate_to_origin, '" ', timing, ' additive="sum"/>'
+                        scale, ';', scale, ';', default_scale, ';', default_scale,';', scale, '" ', timing, ' additive="sum"/>'
                 '</use>'
             ))
         else:
-            radius = star_radius * math.sqrt(star_scales[state])
-            x = str(star_column_width + star_column_width * cx - radius)
-            y = str(star_row_height + star_row_height * cy - radius)
-            width = str(2*radius)
-            svg.extend(('<use xlink:href="#s" x="', x, '" y="', y, '" width="', width, '" height="', width, '"/>'))
+            radius = str(star_radius * math.sqrt(star_scales[state]))
+            cx = str(star_column_width + star_column_width * cx)
+            cy = str(star_row_height + star_row_height * cy)
+            svg.extend(('<use xlink:href="#s" transform="translate(', cx, ' ', cy,') scale(', radius, ')"/>'))
 
     svg.append('</svg>\n')
 
