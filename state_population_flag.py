@@ -298,18 +298,20 @@ def proportional_flag(proportions, animate_duration=None):
 def main():
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
-    with open(OUTPUT_NORMAL, 'w') as f:
-        f.write(proportional_flag({s: 1 for s in order_of_admission_to_union}))
-    with open(OUTPUT_BY_POPULATION, 'w') as f:
-        f.write(proportional_flag(state_populations))
-    with open(OUTPUT_BY_AREA, 'w') as f:
-        f.write(proportional_flag(state_areas))
-    with open(OUTPUT_BY_POPULATION_ANIMATED, 'w') as f:
-        f.write(proportional_flag(state_populations, ANIMATION_TIMINGS))
-    with open(OUTPUT_BY_AREA_ANIMATED, 'w') as f:
-        f.write(proportional_flag(state_areas, ANIMATION_TIMINGS))
-    with open(OUTPUT_BY_POPULATION_ANIMATED_TO_ELECTORAL_VOTES, 'w') as f:
-        f.write(make_svg(get_red_stripe_defs(state_populations), get_star_scales(state_populations), ANIMATED_ELECTORAL_VOTES, -8, (get_red_stripe_defs(state_electoral_votes), get_star_scales(state_electoral_votes))))
+    with open(OUTPUT_NORMAL, 'wb') as f:
+        f.write(proportional_flag({s: 1 for s in order_of_admission_to_union}).encode('ascii'))
+    with open(OUTPUT_BY_POPULATION, 'wb') as f:
+        f.write(proportional_flag(state_populations).encode('ascii'))
+    with open(OUTPUT_BY_AREA, 'wb') as f:
+        f.write(proportional_flag(state_areas).encode('ascii'))
+    with open(OUTPUT_BY_POPULATION_ANIMATED, 'wb') as f:
+        f.write(proportional_flag(state_populations, ANIMATION_TIMINGS).encode('ascii'))
+    with open(OUTPUT_BY_AREA_ANIMATED, 'wb') as f:
+        f.write(proportional_flag(state_areas, ANIMATION_TIMINGS).encode('ascii'))
+    with open(OUTPUT_BY_POPULATION_ANIMATED_TO_ELECTORAL_VOTES, 'wb') as f:
+        electoral_votes_flag_info = get_red_stripe_defs(state_electoral_votes), get_star_scales(state_electoral_votes)
+        svg = make_svg(get_red_stripe_defs(state_populations), get_star_scales(state_populations), ANIMATED_ELECTORAL_VOTES, -8, electoral_votes_flag_info)
+        f.write(svg.encode('ascii'))
 
 
 # Data section
