@@ -169,9 +169,9 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
 
     svg = [
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1235" height="650" viewBox="0 0 1.9 1">'
-            '<defs>'
-                '<path id="s" fill="', WHITE, '" d="M'
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1235" height="650" viewBox="0 0 1.9 1">\n'
+        '<defs>\n'
+        '    <path id="s" fill="', WHITE, '" d="M'
     ]
 
     # #s is a white star radius 1 centred at (0, 0), with a point at (0, 1) (so it faces upwards)
@@ -180,9 +180,9 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
         svg.extend((str(x), ',', str(y)))
 
     svg.extend((
-                  'Z"/>'
-            '</defs>'
-            '<rect width="100%" height="100%" fill="', WHITE, '"/>'  # White rectangle for 6 of the 13 stripes
+                  'Z"/>\n'
+       '</defs>\n'
+       '<rect width="100%" height="100%" fill="', WHITE, '"/>\n'  # White rectangle for 6 of the 13 stripes
     ))
 
     # 7 red stripes
@@ -198,22 +198,22 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
                 default_top_y = str(i * 2/13)
                 default_height = str(1/13)
             svg.extend((
-                '<rect width="100%" y="', top_y, '" height="', height, '" fill="', RED, '">',
-                    make_animate('y', top_y, default_top_y),
-                    make_animate('height', height, default_height),
+                '<rect width="100%" y="', top_y, '" height="', height, '" fill="', RED, '">\n',
+                '    ', make_animate('y', top_y, default_top_y), '\n'
+                '    ', make_animate('height', height, default_height), '\n'
                 '</rect>'
             ))
         else:
-            svg.extend(('<rect width="100%" y="', top_y, '" height="', height, '" fill="', RED, '"/>'))
+            svg.extend(('<rect width="100%" y="', top_y, '" height="', height, '" fill="', RED, '"/>\n'))
 
     # Blue canton
     if (not do_animate) or canton_width == default_canton_width:
-        svg.extend(('<rect width="', canton_width_pct, '%" height="', canton_height_pct, '%" fill="', BLUE, '"/>'))
+        svg.extend(('<rect width="', canton_width_pct, '%" height="', canton_height_pct, '%" fill="', BLUE, '"/>\n'))
     else:
         svg.extend((
-            '<rect width="', canton_width_pct, '%" height="', canton_height_pct, '%" fill="', BLUE ,'">',
-                make_animate('width', canton_width_pct + '%', default_canton_width_pct + '%'),
-                make_animate('height', canton_height_pct + '%', default_canton_height_pct + '%'),
+            '<rect width="', canton_width_pct, '%" height="', canton_height_pct, '%" fill="', BLUE ,'">\n',
+            '    ', make_animate('width', canton_width_pct + '%', default_canton_width_pct + '%'), '\n'
+            '    ', make_animate('height', canton_height_pct + '%', default_canton_height_pct + '%'), '\n'
             '</rect>'
         ))
 
@@ -251,18 +251,18 @@ def make_svg(red_stripe_defs, star_scales, animate_duration=None, canton_width=0
             default_translate = str(default_cx) + ' ' + str(default_cy)
 
             svg.extend((
-                '<use xlink:href="#s" transform="translate(', translate, ') scale(', scale, ')">'
-                    '<animateTransform attributeName="transform" attributeType="XML" type="translate" values="',
-                        translate, ';', translate, ';', default_translate, ';', default_translate, ';', translate, '" ', timing, '/>'
-                    '<animateTransform attributeName="transform" attributeType="XML" type="scale" values="',
-                        scale, ';', scale, ';', default_scale, ';', default_scale,';', scale, '" ', timing, ' additive="sum"/>'
-                '</use>'
+                '<use xlink:href="#s" transform="translate(', translate, ') scale(', scale, ')">\n'
+                '    <animateTransform attributeName="transform" attributeType="XML" type="translate" values="',
+                        translate, ';', translate, ';', default_translate, ';', default_translate, ';', translate, '" ', timing, '/>\n'
+                '    <animateTransform attributeName="transform" attributeType="XML" type="scale" values="',
+                        scale, ';', scale, ';', default_scale, ';', default_scale,';', scale, '" ', timing, ' additive="sum"/>\n'
+                '</use>\n'
             ))
         else:
             radius = str(star_radius * math.sqrt(star_scales[state]))
             cx = str(star_column_width + star_column_width * cx)
             cy = str(star_row_height + star_row_height * cy)
-            svg.extend(('<use xlink:href="#s" transform="translate(', cx, ' ', cy,') scale(', radius, ')"/>'))
+            svg.extend(('<use xlink:href="#s" transform="translate(', cx, ' ', cy,') scale(', radius, ')"/>\n'))
 
     svg.append('</svg>\n')
 
